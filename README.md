@@ -3,10 +3,10 @@
 ## Aim of the Project
 
 The aim of this project is to investigate how data‑driven clinical subtypes of metabolic dysfunction‑associated steatotic liver disease (MASLD) relate to molecular profiles in the liver and blood.  
-The project combines liver and plasma metabolomics with liver transcriptomics to 
--(i) characterise metabolic and transcriptional signatures of cardiometabolic and liver‑specific MASLD clusters,
--(ii) identify signals associated with steatohepatitis (MASH) and fibrosis, and 
--(iii) explore multi‑omics signatures as candidates for non‑invasive biomarkers.
+The project combines liver and plasma metabolomics with liver transcriptomics to:
+  - characterise metabolic and transcriptional signatures of cardiometabolic and liver‑specific MASLD clusters,
+  - identify signals associated with steatohepatitis (MASH) and fibrosis, and 
+  - explore multi‑omics signatures as candidates for non‑invasive biomarkers.
 
 ## Project Description
 
@@ -77,7 +77,7 @@ it contains full analysis workflow, including both in my thesis work and additio
   - `mixOmics` (multi‑omics integration, e.g. DIABLO)
   - `RaMP` or other pathway tools (metabolite and gene pathway enrichment)
 
-## Key Findings (Short)
+## Key Findings 
 
 - MASLD subtypes show distinct but overlapping metabolic reprogramming in liver and plasma, centred on sphingolipid, phospholipid and bile‑acid pathways.  
 - Transcriptomic DEA highlights complementary changes in genes involved in lipid metabolism, inflammation and fibrosis‑related pathways, supporting the metabolomics findings.  
