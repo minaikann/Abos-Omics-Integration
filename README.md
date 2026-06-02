@@ -13,6 +13,8 @@ The project combines liver and plasma metabolomics with liver transcriptomics to
 This project builds on previously defined MASLD clusters from the ABOS bariatric surgery cohort and integrates three layers of data: clinical and histological features, untargeted liver and plasma metabolomics, and liver transcriptomics.  
 It uses statistical modelling, differential expression analysis and multi‑omics integration to describe MASLD heterogeneity and to identify biologically meaningful signatures of MASH and significant fibrosis across omics layers.
 it contains full analysis workflow, including both in my thesis work and additional exploratory analyses that were not all reported in the manuscript.
+Some of the codes used are code used in the original Data-driven cluster analysis By Dr Violeta Raverdy et al and the code could be see here 
+gitlab.com/bilille/2024-raverdy_et_al-masld_clusters/-/tree/main
 
 ## Methods / Approach
 
