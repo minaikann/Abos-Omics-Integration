@@ -4,9 +4,9 @@
 
 The aim of this project is to investigate how data‑driven clinical subtypes of metabolic dysfunction‑associated steatotic liver disease (MASLD) relate to molecular profiles in the liver and blood.  
 The project combines liver and plasma metabolomics with liver transcriptomics to:
-  - characterise metabolic and transcriptional signatures of cardiometabolic and liver‑specific MASLD clusters,
-  - identify signals associated with steatohepatitis (MASH) and fibrosis, and 
-  - explore multi‑omics signatures as candidates for non‑invasive biomarkers.
+  - Characterise metabolic signatures of cardiometabolic and liver‑specific MASLD clusters,
+  - Identify signals associated with steatohepatitis (MASH) and fibrosis, and 
+  - Explore multi‑omics signatures as possible candidates for non‑invasive biomarkers.
 
 ## Project Description
 
