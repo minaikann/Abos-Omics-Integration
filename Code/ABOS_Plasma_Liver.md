@@ -1,9 +1,6 @@
 ---
 title: "ABOS Omics Analysis"
 author: "Deborah Mina Ikann"
-date: "`r Sys.Date()`"
-output: html_document
-  
 ---
 
 
