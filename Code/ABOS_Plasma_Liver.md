@@ -47,6 +47,19 @@ library(tidyr)
 library(clusterProfiler)
 ```
 
+### Loading of data 
+
+```{r data loading, include=FALSE}
+clinical_data <- read.xlsx("~/Documents/Clustering_ABOS/codes/Data/dataEtude_clustering.xlsx", rowNames = TRUE)
+mash_data <- readRDS("~/Documents/Clustering_ABOS/codes/Data/histology_debora.RDS")
+expression_sheet <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 1)
+sample_info <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 2)
+sample_info <- sample_info[ !sample_info$BOX_NUMBER %in% c("1 M3", "3 M3", "2 V2") & !is.na(sample_info$BOX_NUMBER),]
+chemical_details <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 3)
+liver_data <- read.xlsx("~/Documents/Clustering_ABOS/codes/Data/liver_matrix.xlsx", rowNames=TRUE)
+sample_info_liver <-read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Chemical_details_liver.xlsx")
+df <-read.csv("/home/mina/Documents/Clustering_ABOS/codes/Data/table_transcripto.csv")
+```
 
 ### Functions used 
 
@@ -120,11 +133,15 @@ clinical_data$InterventionDate_Clean <- date_data[match(rownames(clinical_data),
 clinical_data$Biopsie_Kleiner_Fibrose <- substr(clinical_data$Biopsie_Kleiner_Fibrose, 1, 1)
 
 # Save results
-#write.xlsx(clinical_data, "clinical_data_Mash.xlsx", rowNames = TRUE)
+write.xlsx(clinical_data, "clinical_data_Mash.xlsx", rowNames = TRUE)
 
 
 # Matched 1545 patients out of 1545 clinical patients
 # Matched 1545 patients out of 1777 MASH patients
+
+table(clinical_data$Biopsie_Kleiner_Fibrose >= 2)
+
+
 ```
 
 ```{r clean-qc}
@@ -214,33 +231,33 @@ cat("Clean rows for plotting:", nrow(cluster_data), "\n")
 ### K-Medoids
 
 ```{r kmediods_test}
-nboot <- 100
-K <- 3:10
-silhouette <- numeric(length(K))
-
-for(i in seq_along(K)) {
-  pam_mod <- pam(cluster_data_scale, k = K[i], nstart = nboot)
-  silhouette[i] <- mean(silhouette(pam_mod)[,3])
-}
-
-plot(K, silhouette, type = "o", pch = 19, xlab = "Number of clusters", ylab = "Mean Silhouette", main = "Optimal k")
-abline(v = which.max(silhouette) + 2, col = "red", lty = 2)  # K starts at 3
+# nboot <- 100
+# K <- 3:10
+# silhouette <- numeric(length(K))
+# 
+# for(i in seq_along(K)) {
+#   pam_mod <- pam(cluster_data_scale, k = K[i], nstart = nboot)
+#   silhouette[i] <- mean(silhouette(pam_mod)[,3])
+# }
+# 
+# plot(K, silhouette, type = "o", pch = 19, xlab = "Number of clusters", ylab = "Mean Silhouette", main = "Optimal k")
+# abline(v = which.max(silhouette) + 2, col = "red", lty = 2)  # K starts at 3
 
 ```
 
 ### Jaccard Index
 
 ```{r jaccard_index}
-set.seed(24)
-jacc <- fpc::clusterboot(data = cluster_data_scale, B = 2000, clustermethod = pamkCBI,  krange = 6, count = FALSE)
-meanJacc <- data.frame(meanJacc = round(apply(t(jacc$bootresult), 2, mean), 3))
-meanJacc <- meanJacc$meanJacc
-
-#The mean and SD
-meanJaccAll <- round(mean(meanJacc),2)
-sdJaccAll <- round(sd(meanJacc),2)
- 
-cat("The jaccard index number ", meanJaccAll," and the sd ", sdJaccAll)
+# set.seed(24)
+# jacc <- fpc::clusterboot(data = cluster_data_scale, B = 2000, clustermethod = pamkCBI,  krange = 6, count = FALSE)
+# meanJacc <- data.frame(meanJacc = round(apply(t(jacc$bootresult), 2, mean), 3))
+# meanJacc <- meanJacc$meanJacc
+# 
+# #The mean and SD
+# meanJaccAll <- round(mean(meanJacc),2)
+# sdJaccAll <- round(sd(meanJacc),2)
+#  
+# cat("The jaccard index number ", meanJaccAll," and the sd ", sdJaccAll)
 
 # The jaccard index number  0.73  and the sd  0.07
 ``` 
@@ -503,6 +520,7 @@ cat("Total number of patients used to Diffrential Analysis:", length(cluster_met
 plasma_metabolite_DA <- plasma_matrix[,names(cluster_metaboplasm )]
 identical(colnames(plasma_metabolite_DA), names(cluster_metaboplasm ))
 
+write.xlsx(plasma_metabolite_DA,"plasma_matrix_of_clusters.xlsx", rowNames = TRUE)
 
 cluster_metaboplasm <- ifelse(cluster_metaboplasm  == 2,"CM",
                              ifelse(cluster_metaboplasm  == 5,"LS", "CTRL"))
@@ -522,6 +540,7 @@ table(cluster_metaboplasm)
 # cluster_metaboplasm
 #   CM CTRL   LS 
 #  151 1075   95 
+
 ```
 
 ### Analysis
@@ -731,14 +750,28 @@ datatable(results1_CMvsLS$results[order(results1_CMvsLS$results$logFC, decreasin
 ## DEA LIVER METABOLITES 
 ## =============================================================================
 ```{r}
+
+
 # Filter out Xenobiotics pathway metabolites
+cat("Total number of metabolites: ", nrow(liver_data), "\n")
+cat ("Total number of Samples with liver metabolomics before analysis: ",ncol(liver_data), "\n")
+
 sample_info_liver <- sample_info_liver %>% filter(sample_info_liver$SUPER.PATHWAY != "Xenobiotics")
 
 # Keep only matching rows between data and sample info
 keep_rows <- sample_info_liver$COMP.ID
-
 liver_matrix <- liver_data[rownames(liver_data) %in% keep_rows, , drop = FALSE]
 
+write.xlsx(liver_matrix,"liver_matrix.xlsx", rowNames = TRUE)
+
+cat("Total number of metabolites after excluding xenobiotics: ", nrow(liver_matrix), "\n")
+cat ("Confirmation of total number of samples with liver metabolomics before analysis: ",ncol(liver_matrix), "\n")
+
+
+# Total number of metabolites:   972 
+# Total number of Samples with liver metabolomics before analysis:  318 
+# Total number of metabolites after excluding xenobiotics:   817 
+# Confirmation of total number of samples with liver metabolomics before analysis:  318 
 ```
 
 ```{r}
@@ -746,7 +779,7 @@ liver_matrix <- liver_data[rownames(liver_data) %in% keep_rows, , drop = FALSE]
 cluster_liver_metaboplasm <- setNames(cluster[colnames(liver_matrix), ], colnames(liver_matrix))
 cluster_liver_metaboplasm <- na.omit(cluster_liver_metaboplasm)  # Remove unmatched samples
 
-cat("Length before cleaning:", length(cluster_liver_metaboplasm), "\n")
+cat("Total number of samples in cluster :", length(cluster_liver_metaboplasm), "\n")
 
 # Filter matrix to cluster-matched samples only
 liver_metabolite_DA <- as.data.frame(liver_matrix[, names(cluster_liver_metaboplasm)])
@@ -760,7 +793,7 @@ cat("Number of liver metabolites:", nrow(liver_metabolite_DA), "\n")
 
 
 
-# Length before cleaning: 295 
+# Total number of samples in cluster : 295 
 # Number of liver metabolite samples for analysis: 295 
 # Number of liver metabolites: 817 
 ```
@@ -1277,84 +1310,94 @@ if(length(unique(liver_data$Mash)) != 2) {
 met_cols_mash <- setdiff(colnames(liver_data),
                          c("Mash", "age", "sex", "sex_bin", "BMI"))
 
+covs <- c("age", "sex_bin", "BMI")
+# ===================================================================
+# Usage — matched to your Mash setup
+# ===================================================================
 
+# Confirm names survived data.frame construction
+stopifnot(all(met_cols_mash %in% colnames(liver_data)))
+
+# Metabolites only — elastic net (NOT ridge), 10 repeats, 80% signature
 res_mash_A <- run_lasso_nested_cv_modelA(
-  data = liver_data,
+  data            = liver_data,
   outcome_bin_col = "Mash",
+  alpha           = 0.5,
   metabolite_cols = met_cols_mash,
-  alpha = 1,
-  n_outer = 10,
-  n_inner = 10
+  lambda_rule     = "lambda.min",
+  stability_thr   = 0.8
 )
 
+# Covariate-adjusted — lasso, covariates forced in unpenalized
 res_mash <- run_lasso_nested_cv(
   data            = liver_data,
   outcome_bin_col = "Mash",
+  alpha           = 0.5,
   covariate_cols  = c("age", "sex_bin", "BMI"),
-  metabolite_cols = met_cols_mash)
+  metabolite_cols = met_cols_mash,
+  lambda_rule     = "lambda.min",
+  stability_thr   = 0.8
+)
+
+# Inspect
+permutation_test(res_mash_A, n_perm = 20)   # confirm clean before trusting it
+res_mash_A$metrics                       # AUC + CI + seed SD, PR-AUC (vs Prevalence),  sensitivity / specificity / accuracy @ Youden
+res_mash_A$stable_signature              # the >= 80% panel (auto-computed)
+get_final_signature(res_mash_A, 0.8)     # same, or try a different threshold
+make_coef_table(res_mash_A, drop_covariates = covs)   # direction + effect size
+res_mash_A$selection_frequency           # full fr
 ```
 
 
 
 ```{r}
-plot(res_mash_A$final_cv)
+# ---- CV curves ----
+plot(res_mash_A$final_cv); title("Model A (metabolites only)", line = 2.5)
 abline(v = log(res_mash_A$final_cv$lambda.min), col = "blue", lty = 2)
-abline(v = log(res_mash_A$final_cv$lambda.1se), col = "red", lty = 2)
-legend("topright",
-       legend = c("lambda.min", "lambda.1se"),
-       col = c("blue", "red"),
-       lty = 2,
-       bty = "n")
+abline(v = log(res_mash_A$final_cv$lambda.1se), col = "red",  lty = 2)
+legend("topright", legend = c("lambda.min", "lambda.1se"),
+       col = c("blue", "red"), lty = 2, bty = "n")
 
-
-
-plot(res_mash$final_cv)
+plot(res_mash$final_cv); title("Adjusted (age, sex, BMI)", line = 2.5)
 abline(v = log(res_mash$final_cv$lambda.min), col = "blue", lty = 2)
-abline(v = log(res_mash$final_cv$lambda.1se), col = "red", lty = 2)
-legend("topright",
-       legend = c("lambda.min", "lambda.1se"),
-       col = c("blue", "red"),
-       lty = 2,
-       bty = "n")
+abline(v = log(res_mash$final_cv$lambda.1se), col = "red",  lty = 2)
+legend("topright", legend = c("lambda.min", "lambda.1se"),
+       col = c("blue", "red"), lty = 2, bty = "n")
+
+# ---- Metrics (Mash, not fib) ----
+res_mash$metrics      # adjusted
+res_mash_A$metrics    # unadjusted
+
+
 
 ```
 
 
 ```{r}
+# ---- Coefficient tables ----
+# Match the s used to the lambda_rule each model was run with
+covs <- c("age", "sex_bin", "BMI")
 
-# Extract nonzero coefficients from a glmnet/cv.glmnet object
-make_coef_table <- function(fit, s = "lambda.1se", drop_intercept = TRUE) {
-  coefs <- coef(fit$final_cv, s = s)
-  coefs_mat <- as.matrix(coefs)
+res_mash_A$final_selected_metabolites
+# Unadjusted signature
+final_coef_table_A <- make_coef_table(res_mash_A, s=res_mash$final_cv$lambda.min)
 
-  out <- data.frame(
-    variable = rownames(coefs_mat),
-    coefficient = as.numeric(coefs_mat[, 1]),
-    row.names = NULL
-  )
+# Adjusted: full table (keeps covariates) + metabolite-only table
+final_coef_table      <- make_coef_table(res_mash, s = res_mash$final_cv$lambda.min)
+final_coef_table_mets <- make_coef_table(res_mash, s = res_mash$final_cv$lambda.min,
+                                         drop_covariates = covs)
 
-  out <- out[out$coefficient != 0, ]
-
-  if (drop_intercept) {
-    out <- out[out$variable != "(Intercept)", ]
-  }
-
-  out
-}
-
-
-# Table 1: with AGE, BMI, SEX
-final_coef_table <- make_coef_table(res_mash, s = "lambda.1se")
-
-# Table 2: without AGE, BMI, SEX
-final_coef_table_A <- make_coef_table(res_mash_A, s = "lambda.1se")
-
-# Print tables
-print("Signatures without covariates")
+cat("\n=== Signatures WITHOUT covariates (Model A) ===\n")
 print(final_coef_table_A)
 
-print("Signatures with covariates")
+cat("\n=== Adjusted model: covariates + metabolites ===\n")
 print(final_coef_table)
+
+cat("\n=== Adjusted model: metabolites only ===\n")
+print(final_coef_table_mets)
+
+
+
 ```
 
 
@@ -1400,29 +1443,52 @@ cat("Metabolites =", length(met_names_fib), "\n")
 # Run analysis
 met_cols_fib <- setdiff(colnames(liver_data_fib),
                         c("Fibrosis_F2", "Fibrosis", "age", "sex", "sex_bin", "BMI"))
+# ===================================================================
+# Fibrosis (F2) models
+# ===================================================================
 
+# Unadjusted (metabolites only)
 res_fib_A <- run_lasso_nested_cv_modelA(
-  data = liver_data_fib,
+  data            = liver_data_fib,
   outcome_bin_col = "Fibrosis_F2",
+  alpha           = 0.5,
   metabolite_cols = met_cols_fib,
-  alpha = 1,
-  n_outer = 10,
-  n_inner = 10
+  lambda_rule     = "lambda.1se",
+  stability_thr   = 0.8
 )
 
-
+# Adjusted (age, sex, BMI forced in)
 res_fib <- run_lasso_nested_cv(
   data            = liver_data_fib,
   outcome_bin_col = "Fibrosis_F2",
+  alpha           = 0.5,
   covariate_cols  = c("age", "sex_bin", "BMI"),
-  metabolite_cols = met_cols_fib,
-  alpha           = 1,
-  n_outer         = 10,
-  n_inner         = 10
+  metabolite_cols = met_cols_mash,
+  lambda_rule     = "lambda.1se",
+  stability_thr   = 0.8
 )
 
-final_coef <- coef(res_mash $final_cv, s = "lambda.1se")
-final_coefA <- coef(res_mash_A $final_cv, s = "lambda.1se")
+# ---- Metrics ----
+res_fib$metrics      # adjusted
+res_fib_A$metrics    # unadjusted
+
+# ---- Coefficient tables (fib, matched to lambda_rule used) ----
+covs <- c("age", "sex_bin", "BMI")
+
+# Unadjusted (metabolites only by construction)
+final_coef_table_A     <- make_coef_table(res_fib_A, s = res_fib_A$final_cv$lambda.min)
+
+# Adjusted: full table (covariates + metabolites) and metabolite-only
+final_coef_table       <- make_coef_table(res_fib,   s = res_fib$final_cv$lambda.min)
+final_coef_table_mets  <- make_coef_table(res_fib,   s = res_fib$final_cv$lambda.min,
+                                          drop_covariates = covs)
+
+cat("\n=== Signatures WITHOUT covariates (Model A) ===\n")
+print(final_coef_table_A)
+cat("\n=== Adjusted model: covariates + metabolites ===\n")
+print(final_coef_table)
+cat("\n=== Adjusted model: metabolites only ===\n")
+print(final_coef_table_mets)
 ```
 
                                                                            
@@ -1449,320 +1515,824 @@ legend("topright",
        bty = "n")
 
 
-# Table 1: with AGE, BMI, SEX
-final_coef_table <- make_coef_table(res_fib, s = "lambda.1se")
 
-# Table 2: without AGE, BMI, SEX
-final_coef_table_A <- make_coef_table(res_fib_A, s = "lambda.1se")
-
-# Print tables
-print("Table 2: without AGE, BMI, SEX")
+cat("\n=== Table 1: without AGE, BMI, SEX (unadjusted) ===\n")
 print(final_coef_table_A)
-
-print("Table 2: with AGE, BMI, SEX")
+cat("\n=== Table 2: with AGE, BMI, SEX (adjusted) ===\n")
 print(final_coef_table)
 
-mash_met <- res_mash$final_selected_metabolites
-fib_met <- res_fib$final_selected_metabolites
+# ---- Union of selected metabolites across outcomes ----
+mash_met  <- get_final_signature(res_mash_A, thr =0.8)
+mash_met <- mash_met$metabolite
+fib_met   <- get_final_signature(res_fib_A, thr = 0.8)
+fib_met <- fib_met$metabolite
+mets_names <- union(mash_met, fib_met)
+mets_names
+length(mets_names)
+
 ```
 
 ## =============================================================================
 ## DIABLO (LIVER METABOLITES SIGNATURES OF MASH AND FIBROSIS WITH PLASMA METABOLITES) 
 ## =============================================================================
 
+This multilevel sPLS-DA model is used to find a small panel of liver + plasma metabolites that best classify Mash status, while adjusting for the fact that multiple measurements may come from the same individual.
+
 ### Preprocessing 
 ```{r}
 library(mixOmics)
+library(BiocParallel)
 
-# 1. Define common samples and selected liver metabolites
+n_cores <- max(1, parallel::detectCores() - 1)
+BPPARAM <- MulticoreParam(workers = n_cores, RNGseed = 123)
+cat("Parallel workers:", n_cores, "\n")
 
-
+# -------------------------------------------------------------------
+# 1–6. Data preparation (same as you wrote)
+# -------------------------------------------------------------------
 common_samples <- intersect(colnames(liver_stages), colnames(plasma_stages))
 common_samples <- intersect(rownames(histo), common_samples)
 
 mets_names <- unique(c(mash_met, fib_met))
 mets_names <- gsub("`", "", mets_names)
+sig_in_liver <- mets_names
 
-cat("Total number of liver metabolites predicted by lasso associated with MASH and Fibrosis:", length(mets_names), "\n")
-cat("Total number of common samples:", length(common_samples), "\n")
-
-mets_names_used <- intersect(mets_names, rownames(liver_stages))
-
-liver_sub  <- liver_stages[mets_names, common_samples, drop = FALSE]
+liver_sub  <- liver_stages[sig_in_liver, common_samples, drop = FALSE]
 plasma_sub <- plasma_stages[, common_samples, drop = FALSE]
-
-
-# 2. Transpose to samples x variables
-
 
 liver_sub  <- t(liver_sub)
 plasma_sub <- t(plasma_sub)
 
+plasma_sub <- plasma_sub[, !apply(plasma_sub, 2, function(x) all(is.na(x))), drop = FALSE]
+liver_sub  <- liver_sub[,  !apply(liver_sub,  2, function(x) all(is.na(x))), drop = FALSE]
 
-# 3. Remove plasma columns that are all NA
+liver_sub  <- liver_sub[,  apply(liver_sub,  2, var, na.rm = TRUE) > 0, drop = FALSE]
+plasma_sub <- plasma_sub[, apply(plasma_sub, 2, var, na.rm = TRUE) > 0, drop = FALSE]
+
+colnames(liver_sub)  <- make.unique(paste0("liv_", colnames(liver_sub)))
+colnames(plasma_sub) <- make.unique(paste0("pls_", colnames(plasma_sub)))
+
+common_ids <- intersect(rownames(liver_sub), rownames(plasma_sub))
+liver_sub  <- liver_sub[common_ids, , drop = FALSE]
+plasma_sub <- plasma_sub[common_ids, , drop = FALSE]
+stopifnot(identical(rownames(liver_sub), rownames(plasma_sub)))
+
+n_samples <- length(common_ids)
+cat("n samples:", n_samples, "\n")
+cat("Liver vars:", ncol(liver_sub), " | Plasma vars:", ncol(plasma_sub), "\n")
+
+# -------------------------------------------------------------------
+# 7. Multilevel design: Mash as class, individual_id from rownames
+# -------------------------------------------------------------------
+# Combine liver + plasma into one matrix
+X_all <- cbind(liver_sub, plasma_sub)
+
+stopifnot(all(common_ids %in% rownames(histo)))
+
+# Outcome: Mash group (factor)
+Y <- as.factor(histo[common_ids, "Mash"])
+
+# Individual ID: here you are using sample names as IDs
+# (multilevel will treat each sample as its own individual, i.e. no real pairing)
+histo$individual_id <- rownames(histo)
+individual_ids <- histo[common_ids, "individual_id"]
+
+cat("Outcome levels:", levels(Y), "\n")
+cat("Number of individuals:", length(unique(individual_ids)), "\n")
+cat("Total measurements:", nrow(X_all), "\n")
+cat("Block sizes: liver =", ncol(liver_sub), ", plasma =", ncol(plasma_sub), "\n")
+
+stopifnot(identical(rownames(X_all), common_ids))
+stopifnot(length(Y) == nrow(X_all))
+stopifnot(length(individual_ids) == nrow(X_all))
+
+# -------------------------------------------------------------------
+# 8. Tuning keepX for multilevel sPLS-DA
+# -------------------------------------------------------------------
+test.keepX <- c(3, 5, 7, 10, 12, 15)
+test.keepX <- test.keepX[test.keepX <= ncol(X_all)]
+
+tune_res <- tune(
+  X = X_all,
+  Y = Y,                # condition = Mash group  # individual IDs
+  ncomp = 2,
+  test.keepX = test.keepX,
+  validation = "Mfold",
+  folds = 5,
+  nrepeat = 10,
+  BPPARAM = BPPARAM,
+  method = "splsda"
+)
+
+plot(tune_res)
+best_keepX <- tune_res$choice.keepX
+cat("\nBest keepX:", best_keepX, "\n")
+
+# -------------------------------------------------------------------
+# 9. Final multilevel sPLS-DA model
+# -------------------------------------------------------------------
+res_ml <-splsda(
+  X = X_all,
+  Y = Y,
+  ncomp = 2,
+  keepX = best_keepX
+)
+
+# Basic plots
+plotIndiv(res_ml, col = c("red", "blue"), pch = 19,
+          legend = TRUE, ellipse = TRUE,
+          title = "Multilevel sPLS-DA: Mash classification")
+
+plotVar(res_ml, comp = 1:2,
+        title = "Variables discriminating Mash groups")
+
+# Selected features
+selected_features <- res_ml$selected.gene
+head(selected_features)
+
+# Component 1 loadings: all metabolites (liver + plasma)
+plotLoadings(res_ml,
+             comp = 1,
+             contrib = "max",
+             ndisplay = 30,
+             title = "Top 30 metabolites (Component 1)")
+```
+```{r}
+## =====================================================================
+## DIABLO (block.splsda) — MASH across liver + plasma
+## Reproducible version: fixes grid name, block-name case, parallel RNG,
+## and makes the final model deterministic.
+##
+## REPRODUCIBILITY NOTES
+##  - Tuning & perf run under SerialParam(RNGseed=...) so folds are
+##    identical every run (MulticoreParam does NOT honour set.seed()).
+##  - block.splsda() itself is deterministic given fixed keepX/design/data.
+##  - Best practice: tune ONCE, read off best_keepX, then hard-code it
+##    (see the TUNE_MODE switch) so downstream plots are byte-identical.
+## =====================================================================
+
+library(mixOmics)
+library(BiocParallel)
+
+## Set to TRUE to run tuning; FALSE to skip tuning and use hard-coded keepX.
+TUNE_MODE <- TRUE
+SEED      <- 123
+
+## =====================================================================
+## 1-7. DATA PREPARATION
+## =====================================================================
+common_samples <- intersect(colnames(liver_stages), colnames(plasma_stages))
+common_samples <- intersect(rownames(histo), common_samples)
+
+mets_names <- unique(c(mash_met, fib_met))
+mets_names <- gsub("`", "", mets_names)
+# sig_in_liver <- mets_names
+sig_in_liver <- rownames(liver_stages)
+
+liver_sub  <- liver_stages[sig_in_liver, common_samples, drop = FALSE]
+plasma_sub <- plasma_stages[, common_samples, drop = FALSE]
+
+liver_sub  <- liver_stages[sig_in_liver, common_samples, drop = FALSE]
+plasma_sub <- plasma_stages[, common_samples, drop = FALSE]
+
+liver_sub  <- t(liver_sub)
+plasma_sub <- t(plasma_sub)
+
+## drop all-NA columns
+plasma_sub <- plasma_sub[, !apply(plasma_sub, 2, function(x) all(is.na(x))), drop = FALSE]
+liver_sub  <- liver_sub[,  !apply(liver_sub,  2, function(x) all(is.na(x))), drop = FALSE]
+
+## drop zero-variance columns (global)
+liver_sub  <- liver_sub[,  apply(liver_sub,  2, var, na.rm = TRUE) > 0, drop = FALSE]
+plasma_sub <- plasma_sub[, apply(plasma_sub, 2, var, na.rm = TRUE) > 0, drop = FALSE]
+
+common_ids <- intersect(rownames(liver_sub), rownames(plasma_sub))
+liver_sub  <- liver_sub[common_ids, , drop = FALSE]
+plasma_sub <- plasma_sub[common_ids, , drop = FALSE]
+stopifnot(identical(rownames(liver_sub), rownames(plasma_sub)))
+
+n_samples <- length(common_ids)
+cat("n samples:", n_samples, "\n")
+cat("Liver vars:", ncol(liver_sub), " | Plasma vars:", ncol(plasma_sub), "\n")
+
+## ----- NA handling (median impute any remaining partial NAs) -----------
+fill_median <- function(M) {
+  for (j in seq_len(ncol(M))) {
+    na <- is.na(M[, j])
+    if (any(na)) M[na, j] <- median(M[, j], na.rm = TRUE)
+  }
+  M
+}
+if (anyNA(liver_sub))  liver_sub  <- fill_median(liver_sub)
+if (anyNA(plasma_sub)) plasma_sub <- fill_median(plasma_sub)
+stopifnot(!anyNA(liver_sub), !anyNA(plasma_sub))
+
+## =====================================================================
+## 8. OUTCOME + ALIGNMENT
+## =====================================================================
+stopifnot(all(common_ids %in% rownames(histo)))
+
+Y <- as.factor(histo[common_ids, "Mash"])
+names(Y) <- common_ids
+
+cat("Outcome levels:", levels(Y), "\n")
+print(table(Y))
+
+## =====================================================================
+## 9. nearZeroVar filter + BLOCK LIST
+## =====================================================================
+nzv_liver  <- nearZeroVar(liver_sub)$Position
+nzv_plasma <- nearZeroVar(plasma_sub)$Position
+if (length(nzv_liver))  liver_sub  <- liver_sub[,  -nzv_liver,  drop = FALSE]
+if (length(nzv_plasma)) plasma_sub <- plasma_sub[, -nzv_plasma, drop = FALSE]
+
+cat("After nearZeroVar — liver:", ncol(liver_sub),
+    " plasma:", ncol(plasma_sub), "\n")
+
+## Block names defined ONCE here; reused everywhere via names(X_blocks)
+X_blocks <- list(Liver = liver_sub, Plasma = plasma_sub)
+
+## design matrix: cross-block coupling (0 = pure discrimination, 1 = pure corr)
+design <- matrix(0.5, nrow = 2, ncol = 2,
+                 dimnames = list(names(X_blocks), names(X_blocks)))
+diag(design) <- 0
+cat("\nDesign matrix:\n"); print(design)
+
+## =====================================================================
+## 10. TUNE keepX   (FIX: single grid name; test.keepX names match blocks)
+## =====================================================================
+grid <- c(3, 5, 7, 10, 12, 15)
+
+## names MUST match names(X_blocks) exactly ("Liver","Plasma")
+test.keepX <- setNames(
+  lapply(X_blocks, function(b) grid[grid <= ncol(b)]),
+  names(X_blocks)
+)
+cat("\ntest.keepX grid:\n"); print(test.keepX)
+
+if (TUNE_MODE) {
+  ## SerialParam(RNGseed=...) -> reproducible folds (Multicore does not honour set.seed)
+  tune_diablo <- tune.block.splsda(
+    X          = X_blocks,
+    Y          = Y,
+    ncomp      = 2,
+    test.keepX = test.keepX,
+    design     = design,
+    validation = "Mfold",
+    folds      = 10,
+    nrepeat    = 10,
+    dist       = "centroids.dist",
+    near.zero.var = TRUE,
+    BPPARAM    = SerialParam(RNGseed = SEED)
+  )
+  best_keepX <- tune_diablo$choice.keepX
+  cat("\nDIABLO best keepX per block:\n"); print(best_keepX)
+} else {
+  ## --- Hard-coded keepX: paste your tuned values here for byte-identical plots ---
+  best_keepX <- list(Liver = c(15, 3), Plasma = c(12, 3))
+  cat("\nUsing hard-coded keepX:\n"); print(best_keepX)
+}
+
+## =====================================================================
+## 11. FINAL DIABLO MODEL  (deterministic given keepX/design/data)
+## =====================================================================
+res_diablo <- block.splsda(
+  X      = X_blocks,
+  Y      = Y,
+  ncomp  = 2,
+  keepX  = best_keepX,
+  near.zero.var = TRUE,
+  design = design
+)
+
+## ----- cross-validated performance (serial+seeded = reproducible) ------
+perf_diablo <- perf(res_diablo, validation = "Mfold", folds = 5,
+                    nrepeat = 50, dist = "centroids.dist",
+                    BPPARAM = SerialParam(RNGseed = SEED))
+cat("\nDIABLO CV error rates:\n"); print(perf_diablo$error.rate)
+
+## ----- feature stability (how often each feature is reselected) --------
+## Lead with stable features rather than a single run's list.
+cat("\nLiver feature stability (comp 1):\n")
+print(head(perf_diablo$features$stable$nrep1$Liver, 20))
+cat("\nPlasma feature stability (comp 1):\n")
+print(head(perf_diablo$features$stable$nrep1$Plasma, 20))
+
+## =====================================================================
+## 12. SELECTED FEATURES  (block names match list: Liver / Plasma)
+## =====================================================================
+sel_liver_d  <- selectVar(res_diablo, block = "Liver",  comp = 1)$Liver$name
+sel_plasma_d <- selectVar(res_diablo, block = "Plasma", comp = 1)$Plasma$name
+
+cat("\nDIABLO liver metabolites (comp 1):\n");  print(sel_liver_d)
+cat("\nDIABLO plasma metabolites (comp 1):\n"); print(sel_plasma_d)
 
 
-all_na_plasma <- apply(plasma_sub, 2, function(x) all(is.na(x)))
-plasma_sub <- plasma_sub[, !all_na_plasma, drop = FALSE]
+sel_liver_d  <- selectVar(res_diablo, block = "Liver",  comp = 2)$Liver$name
+sel_plasma_d <- selectVar(res_diablo, block = "Plasma", comp = 2)$Plasma$name
+cat("\nDIABLO liver metabolites (comp 2):\n");  print(sel_liver_d)
+cat("\nDIABLO plasma metabolites (comp 2):\n"); print(sel_plasma_d)
 
-# Optional: remove all-NA liver columns too, just in case
-all_na_liver <- apply(liver_sub, 2, function(x) all(is.na(x)))
-liver_sub <- liver_sub[, !all_na_liver, drop = FALSE]
+## =====================================================================
+## 13. PLOTS  (incl. circos)
+## =====================================================================
+plotIndiv(res_diablo, legend = TRUE, ellipse = TRUE,
+          title = "DIABLO: MASH across liver + plasma")
 
+plotDiablo(res_diablo, ncomp = 1)
 
-# 4. Global scaling
+plotVar(res_diablo, comp = 1:2, legend = TRUE,
+        title = "DIABLO liver-plasma correlation circle")
 
-
-liver_scaled  <- scale(liver_sub, center = TRUE, scale = TRUE)
-plasma_scaled <- scale(plasma_sub, center = TRUE, scale = TRUE)
-
-
-# 5. Remove zero-variance columns
-
-liver_var  <- apply(liver_scaled, 2, var, na.rm = TRUE)
-plasma_var <- apply(plasma_scaled, 2, var, na.rm = TRUE)
-
-liver_final  <- liver_scaled[, liver_var > 0, drop = FALSE]
-plasma_final <- plasma_scaled[, plasma_var > 0, drop = FALSE]
-
-
-# 6. Make names block-specific and unique
-
-
-colnames(liver_final)  <- paste0("liv_", colnames(liver_final))
-colnames(plasma_final) <- paste0("pls_", colnames(plasma_final))
-
-colnames(liver_final)  <- make.unique(colnames(liver_final))
-colnames(plasma_final) <- make.unique(colnames(plasma_final))
-
-# Check uniqueness
-stopifnot(length(unique(colnames(liver_final)))  == ncol(liver_final))
-stopifnot(length(unique(colnames(plasma_final))) == ncol(plasma_final))
+pdf("circos_diablo_MASH.pdf", width = 12, height = 10)
+circosPlot(res_diablo,
+           cutoff       = 0.6,
+           line         = FALSE,
+           color.blocks = c("lightblue", "darkgreen"),
+           color.cor    = c("red", "blue"),
+           size.labels  = 0.6,
+           size.variables = 0.6,
+           var.adj      = -0.3,
+           block.labels.adj = -0.50)
+dev.off()
 
 
-# 7. Build outcome vector aligned to sample IDs
+svg("circos_diablo_MASH.svg", width = 12, height = 10)
+circosPlot(res_diablo, cutoff = 0.6, line = FALSE,
+           color.blocks = c("lightblue", "darkgreen"),
+           color.cor = c("red", "blue"),
+           size.labels = 0.6, size.variables = 0.6,var.adj = -0.3,block.labels.adj = -0.50)
+dev.off()
 
 
-common_ids <- rownames(liver_final)
+plotLoadings(res_diablo, comp = 1, contrib = "max", method = "median",
+             ndisplay = 30, title = "DIABLO top features (comp 1)")
 
-# For MASH
-liver_outcome <- histo[common_ids, "Mash", drop = TRUE]
+# Open a large device FIRST so nodes/labels have room
+svg("network_diablo_MASH.svg", width = 16, height = 12)
+# png("network_diablo_MASH.png", width = 16, height = 12, units = "in", res = 300)  # raster option
+par(mar = c(1, 1, 1, 1))   # trim margins so the graph fills the canvas
+network(res_diablo,
+        blocks           = c(1, 2),       # which blocks to link (e.g. liver & plasma)
+        cutoff           = 0.6,           # match your circos
+        color.node       = c("lightblue", "mistyrose"),   # one colour PER block
+        shape.node       = c("rectangle", "rectangle"),
+        cex.node.name    = 0.5,
+        color.edge       = colorRampPalette(c("darkblue", "white", "darkred"))(1000),
+        lwd.edge         = 1,
+        show.edge.labels = TRUE)
 
-# If instead you want fibrosis:
-# liver_outcome <- ifelse(histo[common_ids, "Fibrosis", drop = TRUE] >= 2, 1, 0)
+dev.off()
 
-liver_outcome <- factor(liver_outcome, levels = c(0, 1), labels = c("No", "Yes"))
-
-# Sanity checks
-stopifnot(nrow(liver_final) == length(liver_outcome))
-stopifnot(nrow(plasma_final) == nrow(liver_final))
+## =====================================================================
+## REPRODUCIBILITY CHECKLIST
+##  - Same results each run? Tuning is serial+seeded; fit is deterministic.
+##  - Plots look "different"? Check for COMPONENT SIGN FLIPS (mirror image) —
+##    compare selected feature SETS, not bar/point orientation.
+##  - For fully fixed plots: run once with TUNE_MODE=TRUE, copy best_keepX
+##    into the hard-coded block, then set TUNE_MODE=FALSE.
+##  - Liver block is a pre-defined MASH signature -> report DIABLO as an
+##    INTEGRATION/correlation result; use plasma-alone sPLS-DA for any
+##    predictive (classification) claim to avoid selection bias.
+## =====================================================================
 ```
 
-## DIABLO BLock 
+
+
+
+
+
+
+
+
+
 ```{r}
+n_cores <- max(1, parallel::detectCores() - 1)
+BPPARAM <- MulticoreParam(workers = n_cores, RNGseed = 123)
+cat("Parallel workers:", n_cores, "\n")
 
-# 8. Build DIABLO input
+# -------------------------------------------------------------------
+# 1. Common samples, as before
+# -------------------------------------------------------------------
+common_samples <- intersect(colnames(liver_stages), colnames(plasma_stages))
+common_samples <- intersect(rownames(histo), common_samples)
 
+# -------------------------------------------------------------------
+# 2. LASSO-selected liver signature: mets_names
+# -------------------------------------------------------------------
+mets_names <- unique(c(mash_met, fib_met))    # your LASSO-derived liver panel
+mets_names <- gsub("`", "", mets_names)
 
-X <- list(
-  liver  = liver_final,
-  plasma = plasma_final
-)
+# keep only those LASSO features present in liver_stages
+sig_in_liver <- intersect(mets_names, rownames(liver_stages))
+cat("Lasso liver signature metabolites requested:", length(mets_names), "\n")
+cat("Present in liver_stages:", length(sig_in_liver), "\n")
+stopifnot(length(sig_in_liver) > 0)
 
-design <- matrix(
-  c(0, 0.5,
-    0.5, 0),
-  nrow = 2,
-  byrow = TRUE,
-  dimnames = list(names(X), names(X))
-)
+liver_sub  <- liver_stages[sig_in_liver, common_samples, drop = FALSE]  # LASSO signature only
+plasma_sub <- plasma_stages[,         common_samples, drop = FALSE]      # full plasma panel
 
+# -------------------------------------------------------------------
+# 3. Transpose: samples x variables
+# -------------------------------------------------------------------
+liver_sub  <- t(liver_sub)
+plasma_sub <- t(plasma_sub)
 
-# 9. Tune DIABLO
+# -------------------------------------------------------------------
+# 4. Drop all-NA and zero-variance columns
+# -------------------------------------------------------------------
+plasma_sub <- plasma_sub[, !apply(plasma_sub, 2, function(x) all(is.na(x))), drop = FALSE]
+liver_sub  <- liver_sub[,  !apply(liver_sub,  2, function(x) all(is.na(x))), drop = FALSE]
 
+liver_sub  <- liver_sub[,  apply(liver_sub,  2, var, na.rm = TRUE) > 0, drop = FALSE]
+plasma_sub <- plasma_sub[, apply(plasma_sub, 2, var, na.rm = TRUE) > 0, drop = FALSE]
 
- test.keep <- list(
-   
-   liver = c(3, 5),
-   plasma = c(5,10)
- )
+# -------------------------------------------------------------------
+# 5. Unique names and alignment
+# -------------------------------------------------------------------
+colnames(liver_sub)  <- make.unique(paste0("liv_", colnames(liver_sub)))
+colnames(plasma_sub) <- make.unique(paste0("pls_", colnames(plasma_sub)))
 
-set.seed(123)
+common_ids <- intersect(rownames(liver_sub), rownames(plasma_sub))
+liver_sub  <- liver_sub[common_ids, , drop = FALSE]
+plasma_sub <- plasma_sub[common_ids, , drop = FALSE]
+stopifnot(identical(rownames(liver_sub), rownames(plasma_sub)))
 
-tune <- tune.block.splsda(
+n_samples <- length(common_ids)
+cat("n samples:", n_samples, "\n")
+cat("Liver  signature) vars:", ncol(liver_sub),
+    " | Plasma vars:", ncol(plasma_sub), "\n")
+
+# -------------------------------------------------------------------
+# 6. sPLS regression: liver signature (X) -> plasma (Y)
+# -------------------------------------------------------------------
+X <- liver_sub
+Y <- plasma_sub
+
+# tuning grid
+test.keepX <- c(3, 5, 7, 10, 12, 15)
+test.keepY <- c(5, 10, 15, 20, 30, 50)
+
+test.keepX <- test.keepX[test.keepX <= ncol(X)]
+test.keepY <- test.keepY[test.keepY <= ncol(Y)]
+
+tune_res <- tune.spls(
   X = X,
-  Y = liver_outcome,
+  Y = Y,
   ncomp = 2,
-  design = design,
+  test.keepX = test.keepX,
+  test.keepY = test.keepY,
+  validation = "Mfold",
   folds = 10,
   nrepeat = 10,
-  dist = "centroids.dist",
-  test.keepX = test.keep
+  BPPARAM = SerialParam(RNGseed = SEED),
+  measure = "cor"   # maximise X–Y correlation
 )
 
-print(tune)
+plot(tune_res)
+best_keepX <- tune_res$choice.keepX
+best_keepY <- tune_res$choice.keepY
 
+cat("\nBest keepX (liver):", best_keepX, "\n")
+cat("Best keepY (plasma):", best_keepY, "\n")
 
-# 10. Fit final DIABLO model
-
-diablo <- block.splsda(
+# final model
+res_spls <- spls(
   X = X,
-  Y = liver_outcome,
+  Y = Y,
   ncomp = 2,
-  design = design,
-  keepX = tune$choice.keepX,
-  near.zero.var = TRUE 
+  keepX = best_keepX,
+  keepY = best_keepY
 )
 
-# DIABLO's own stability (no FDR needed)
-perf_diablo <- perf(diablo, validation = "Mfold", folds = 10, nrepeat = 10)
-plot(perf_diablo)
-```
+# -------------------------------------------------------------------
+# 7. Interpretation helpers
+# -------------------------------------------------------------------
+# Sample plots
+plotIndiv(res_spls, rep.space = "X-variate", title = "Samples in liver-signature space")
+plotIndiv(res_spls, rep.space = "Y-variate", title = "Samples in plasma space")
 
-### Optional plots
+# Correlated variables
+plotVar(res_spls, comp = 1:2, title = "Liver–plasma correlations (LASSO signature)")
 
-```{r}
-#pdf("sample_seperation_plot.pdf", width = 16, height = 10)
-plotIndiv(
-  diablo, 
-  comp = 1:2, 
-  group = liver_outcome, 
-  ind.names = FALSE,
-  legend = TRUE
-)
-#dev.off ()
+# Selected features
+sel_liver  <- selectVar(res_spls, comp = 1)$X
+sel_plasma <- selectVar(res_spls, comp = 1)$Y
 
+cat("\nSelected liver LASSO metabolites:\n"); print(sel_liver$names)
+cat("\nSelected plasma metabolites:\n"); print(sel_plasma$names)
 
-plotVar(diablo, comp = 1:2, blocks = c("liver", "plasma"))
-
-#pdf("circos_diablo.pdf", width = 20, height = 16)
-circosPlot(
-  diablo,
-  comp = 1:2,
-  cutoff = 0.5,
-  size.variables = 0.78,
-  size.legend = 0.7,
-  ncol.legend = 1
-)
-#dev.off()
-
+pdf("liver_plasma_network_spread.pdf", width = 10, height = 8)
+network(res_spls,
+        comp = 1:2,
+        cutoff = 0.4,
+        color.node = c("lightblue", "mistyrose"),
+        shape.node = c("rectangle", "rectangle"),
+        cex.node.name = 0.45,
+        color.edge = colorRampPalette(c("darkblue","grey60","red"))(100),
+        lwd.edge = 1,
+        show.edge.labels = FALSE)
+dev.off()
 ```
 
 
 
-## =============================================================================
-## DIABLO (LIVER, PLASMA METABOLITES WITH LIVER TRANSCRIPTOMICS) 
-## =============================================================================
+# =============================================================================
+# TABLE SUMMARY FOR PARTICIPANTS (LIVER COHORT)
+# =============================================================================
+```{r}
+# =============================================================================
+# TABLE SUMMARY FOR PARTICIPANTS (LIVER COHORT)
+# =============================================================================
+
+summary_ids <- rownames(cluster_aligned)
+
+summary_df <- data.frame(
+  row.names    = summary_ids,
+  Class        = cluster_aligned[summary_ids, "class"],
+  Age          = clinical_data[summary_ids, "AgeJourIntervention"],
+  Sex          = clinical_data[summary_ids, "sexe"],
+  BMI          = clinical_data[summary_ids, "BMI"],
+  ALT          = clinical_data[summary_ids, "TGPUL"],
+  HbA1c        = clinical_data[summary_ids, "hba1cpc"],
+  Triglycerides= clinical_data[summary_ids, "triglymmolL"],
+  LDL          = clinical_data[summary_ids, "cholest_LDLmmolL"],
+  Mash         = clinical_data[summary_ids, "Mash"],
+  Steatosis    = as.numeric(clinical_data[summary_ids, "Steatosis"]),
+  Ballooning   = clinical_data[summary_ids, "Ballooning"],
+  Inflammation = clinical_data[summary_ids, "Inflammation"],
+  Fibrosis     = as.numeric(clinical_data[summary_ids, "Biopsie_Kleiner_Fibrose"])
+)
+
+# Order classes consistently (CM, LS, CTRL)
+summary_df$Class <- factor(summary_df$Class, levels = c("CM", "LS", "CTRL"))
+
+# Collapse ordinal/graded histology scores to threshold or present-absent
+summary_df$Steatosis_S2     <- ifelse(summary_df$Steatosis    >= 2, 1, 0)  # mirrors Fibrosis
+summary_df$Fibrosis_F2      <- ifelse(summary_df$Fibrosis      >= 2, 1, 0)
+summary_df$Ballooning_bin   <- ifelse(summary_df$Ballooning    >= 1, 1, 0)
+summary_df$Inflammation_bin <- ifelse(summary_df$Inflammation  >= 1, 1, 0)
+
+# ---- Helper functions ----
+
+# Continuous: median [Q1–Q3]
+fmt_cont <- function(x) {
+  x <- x[!is.na(x)]
+  if (length(x) == 0) return("—")
+  q <- quantile(x, probs = c(0.25, 0.5, 0.75))
+  sprintf("%.1f [%.1f–%.1f]", q[2], q[1], q[3])
+}
+
+# Categorical (binary/level): n (%)
+fmt_cat <- function(x, level) {
+  x <- x[!is.na(x)]
+  if (length(x) == 0) return("—")
+  n <- sum(x == level)
+  sprintf("%d (%.1f%%)", n, 100 * n / length(x))
+}
+
+# Categorical p-value: Chi-square only
+pval_cat <- function(values, group) {
+  ok <- !is.na(values) & !is.na(group)
+  tab <- table(values[ok], group[ok])
+  if (any(dim(tab) < 2)) return(NA_real_)
+  suppressWarnings(chisq.test(tab)$p.value)
+}
+
+# Continuous variables grouped into quantile categories so they can use chi-square
+categorize_quantiles <- function(x, n_groups = 3) {
+  qs <- quantile(x, probs = seq(0, 1, length.out = n_groups + 1), na.rm = TRUE)
+  cut(x, breaks = unique(qs), include.lowest = TRUE)
+}
+
+fmt_p <- function(p) {
+  if (is.na(p)) return("—")
+  if (p < 0.001) return("<0.001")
+  sprintf("%.3f", p)
+}
+
+# Helper: empty row used as a section heading
+section_row <- function() c(setNames(rep("", length(groups)), groups),
+                            Overall = "", `p-value` = "")
+
+# Helper: build a continuous row (median [IQR] display, chi-square on tertiles)
+cont_row <- function(v) {
+  binned <- categorize_quantiles(summary_df[[v]])
+  c(sapply(groups, function(g) fmt_cont(summary_df[[v]][summary_df$Class == g])),
+    Overall = fmt_cont(summary_df[[v]]),
+    `p-value` = fmt_p(pval_cat(binned, summary_df$Class)))
+}
+
+# Helper: build a categorical row for a given level
+cat_row <- function(v, level) {
+  c(sapply(groups, function(g) fmt_cat(summary_df[[v]][summary_df$Class == g], level)),
+    Overall = fmt_cat(summary_df[[v]], level),
+    `p-value` = fmt_p(pval_cat(summary_df[[v]], summary_df$Class)))
+}
+
+# ---- Build the table row by row ----
+
+groups <- levels(summary_df$Class)
+table_rows <- list()
+
+# N per group header
+table_rows[["N"]] <- c(
+  sapply(groups, function(g) as.character(sum(summary_df$Class == g, na.rm = TRUE))),
+  Overall = as.character(nrow(summary_df)),
+  `p-value` = ""
+)
+
+# ===== SECTION: CLINICAL DATA =====
+table_rows[["— Clinical data —"]] <- section_row()
+
+# Sex — same p-value for both rows (single 2-level test)
+sex_p <- fmt_p(pval_cat(summary_df$Sex, summary_df$Class))
+table_rows[["Female, n (%)"]] <- c(
+  sapply(groups, function(g) fmt_cat(summary_df$Sex[summary_df$Class == g], "F")),
+  Overall = fmt_cat(summary_df$Sex, "F"), `p-value` = sex_p
+)
+table_rows[["Male, n (%)"]] <- c(
+  sapply(groups, function(g) fmt_cat(summary_df$Sex[summary_df$Class == g], "M")),
+  Overall = fmt_cat(summary_df$Sex, "M"), `p-value` = sex_p
+)
+
+table_rows[["Age (years)"]]              <- cont_row("Age")
+table_rows[["BMI (kg/m²)"]]              <- cont_row("BMI")
+table_rows[["ALT (U/L)"]]                <- cont_row("ALT")
+table_rows[["HbA1c (%)"]]                <- cont_row("HbA1c")
+table_rows[["Triglycerides (mmol/L)"]]   <- cont_row("Triglycerides")
+table_rows[["LDL cholesterol (mmol/L)"]] <- cont_row("LDL")
+
+# ===== SECTION: LIVER HISTOLOGY =====
+table_rows[["— Liver histology —"]] <- section_row()
+
+# Steatosis ≥ S2, n (%) — mirrors the Fibrosis threshold row
+table_rows[["Steatosis ≥ S2, n (%)"]] <- cat_row("Steatosis_S2", 1)
+
+# Ballooning (present, ≥1), n (%)
+table_rows[["Ballooning, n (%)"]] <- cat_row("Ballooning_bin", 1)
+
+# Inflammation (present, ≥1), n (%)
+table_rows[["Inflammation, n (%)"]] <- cat_row("Inflammation_bin", 1)
+
+# MASH (present), n (%)
+table_rows[["MASH, n (%)"]] <- cat_row("Mash", 1)
+
+# Significant fibrosis (F ≥ 2), n (%)
+table_rows[["Fibrosis ≥ F2, n (%)"]] <- cat_row("Fibrosis_F2", 1)
+
+# Assemble into a data frame
+summary_table <- do.call(rbind, table_rows)
+summary_table <- as.data.frame(summary_table, stringsAsFactors = FALSE)
+colnames(summary_table) <- c(groups, "Overall", "p-value")
+summary_table <- tibble::rownames_to_column(summary_table, "Characteristic")
+
+# Display
+datatable(
+  summary_table,
+  rownames = FALSE,
+  caption = "Baseline characteristics by metabolic class. Continuous variables are median [IQR]; categorical variables are n (%). P-values from Chi-square test."
+) %>%
+  formatStyle(
+    "Characteristic",
+    target = "row",
+    fontWeight = styleEqual(c("— Clinical data —", "— Liver histology —"), c("bold", "bold")),
+    backgroundColor = styleEqual(c("— Clinical data —", "— Liver histology —"), c("#f0f0f0", "#f0f0f0"))
+  )
+
+# Save if needed
+# write.csv(summary_table, "table1_liver_participant_summary.csv", row.names = FALSE)
+```
+
+## PLASMA — within-group MASH DEA
 
 ```{r}
-transcripto <- plasma_transcript_DA
-metabolite <- liver_matrix
-plasma_metabolite <- plasma_matrix
+# -------------------------------------------------------------------
+# Build a combined annotation: class + Mash status, aligned to plasma
+# -------------------------------------------------------------------
+# cluster_metaboplasm currently holds CM / LS / CTRL labels (named by sample)
+# Pull Mash status for the same samples from clinical_data
+mash_status_plasma <- clinical_data$Mash[match(names(cluster_metaboplasm),
+                                               rownames(clinical_data))]
+names(mash_status_plasma) <- names(cluster_metaboplasm)
 
-common <- intersect(colnames(transcripto), colnames(metabolite))
-common <- intersect(colnames(plasma_metabolite), common)
-length(common)
+# Combined factor like "CM_1" (MASH) / "CM_0" (non-MASH)
+plasma_annot <- data.frame(
+  sample = names(cluster_metaboplasm),
+  class  = cluster_metaboplasm,
+  mash   = mash_status_plasma,
+  row.names = names(cluster_metaboplasm),
+  stringsAsFactors = FALSE
+)
+
+# Drop samples with missing Mash
+plasma_annot <- plasma_annot[!is.na(plasma_annot$mash), ]
+
+cat("Plasma samples with class + Mash:", nrow(plasma_annot), "\n")
+print(table(plasma_annot$class, plasma_annot$mash))
+```
+
+```{r}
+# -------------------------------------------------------------------
+# Reusable function: MASH vs non-MASH within ONE class
+# -------------------------------------------------------------------
+run_mash_dea_within_class <- function(matrix_data, annot, target_class,
+                                      name_map_fn, annotation_table,
+                                      label = "Plasma") {
+
+  # Samples in this class only
+  sel <- annot$sample[annot$class == target_class]
+  sel <- intersect(sel, colnames(matrix_data))
+
+  grp <- factor(ifelse(annot[sel, "mash"] == 1, "MASH", "nonMASH"),
+                levels = c("nonMASH", "MASH"))
+
+  cat("\n===", label, target_class, "MASH vs nonMASH ===\n")
+  print(table(grp))
+
+  # Need both groups present
+  if (length(levels(droplevels(grp))) < 2) {
+    cat("Only one group present — skipping.\n")
+    return(NULL)
+  }
+
+  mat <- matrix_data[, sel, drop = FALSE]
+
+  design <- model.matrix(~ -1 + grp)
+  colnames(design) <- levels(grp)
+  fit <- lmFit(mat, design)
+
+  comp <- comparisonsLimmaFct(fit, "MASH - nonMASH", design, nrow(mat))
+  comp$mstat <- name_map_fn(comp$mstat, annotation_table)
+  res <- printResultsLimmaFct(comp, topPrintHist = FALSE, topPrintVolc = FALSE)
+
+  down <- nrow(res$results[res$results$logFC < 0, ])
+  up   <- nrow(res$results[res$results$logFC > 0, ])
+  cat("Down (lower in MASH):", down, " | Up (higher in MASH):", up, "\n")
+
+  res
+}
+```
+
+```{r}
+# -------------------------------------------------------------------
+# Run for CM and LS — PLASMA
+# -------------------------------------------------------------------
+res_plasma_CM_mash <- run_mash_dea_within_class(
+  plasma_metabolite_DA, plasma_annot, "CM",
+  map_chemical_names, chemical_details, label = "Plasma")
+
+res_plasma_LS_mash <- run_mash_dea_within_class(
+  plasma_metabolite_DA, plasma_annot, "LS",
+  map_chemical_names, chemical_details, label = "Plasma")
+
+# Visualizations
+res_plasma_CM_mash$volcano
+res_plasma_LS_mash$volcano
+datatable(res_plasma_CM_mash$results[order(res_plasma_CM_mash$results$logFC, decreasing = TRUE), ])
+datatable(res_plasma_LS_mash$results[order(res_plasma_LS_mash$results$logFC, decreasing = TRUE), ])
+```
+
+## LIVER — within-group MASH DEA
+```{r}
+# -------------------------------------------------------------------
+# Same annotation logic for liver
+# -------------------------------------------------------------------
+mash_status_liver <- clinical_data$Mash[match(names(cluster_liver_metaboplasm),
+                                              rownames(clinical_data))]
+names(mash_status_liver) <- names(cluster_liver_metaboplasm)
+
+liver_annot <- data.frame(
+  sample = names(cluster_liver_metaboplasm),
+  class  = cluster_liver_metaboplasm,
+  mash   = mash_status_liver,
+  row.names = names(cluster_liver_metaboplasm),
+  stringsAsFactors = FALSE
+)
+liver_annot <- liver_annot[!is.na(liver_annot$mash), ]
+
+cat("Liver samples with class + Mash:", nrow(liver_annot), "\n")
+print(table(liver_annot$class, liver_annot$mash))
+```
+
+```{r}
+res_liver_CM_mash <- run_mash_dea_within_class(
+  liver_metabolite_DA, liver_annot, "CM",
+  map_metabolite_names, sample_info_liver, label = "Liver")
+
+res_liver_LS_mash <- run_mash_dea_within_class(
+  liver_metabolite_DA, liver_annot, "LS",
+  map_metabolite_names, sample_info_liver, label = "Liver")
+
+res_liver_CM_mash$volcano
+res_liver_LS_mash$volcano
+datatable(res_liver_CM_mash$results[order(res_liver_CM_mash$results$logFC, decreasing = TRUE), ])
+datatable(res_liver_LS_mash$results[order(res_liver_LS_mash$results$logFC, decreasing = TRUE), ])
+```
+
+
+```{r}
  
-metabolite <- map_liver_bio(metabolite[, common, drop= FALSE], sample_info_liver)
-plasma_metabolite <- map_chemical_names(plasma_metabolite[,common, drop = FALSE], chemical_details)
-
-transcripto <- transcripto[,common, drop=FALSE]
-
-transcripto <- t(transcripto)
-metabolite<- t(metabolite)
-plasma_metabolite <- t(plasma_metabolite)
-
-plasma_metabolite_scaled <- scale(plasma_metabolite, center = TRUE, scale = TRUE)
-transcripto_scaled  <- scale(transcripto, center = TRUE, scale = TRUE)
-metabolite_scaled <- scale(metabolite, center = TRUE, scale = TRUE)
-
-
-# For MASH
-cluster_id <- cluster_data[common, "class" , drop = TRUE]
-
-
-```
-
-```{r}
-# -------------------------------------------------------------------
-# 8. Build DIABLO input
-# -------------------------------------------------------------------
-
-X <- list(
-  Liver = metabolite_scaled,
-  Transcripto = transcripto_scaled,
-  Plasma = plasma_metabolite_scaled
-)
-
-design <- matrix(
-  c(0,   0.5, 0.5,
-    0.5, 0,   0.5,
-    0.5, 0.5, 0),
-  nrow = 3,
-  byrow = TRUE,
-  dimnames = list(names(X), names(X))
-)
-# -------------------------------------------------------------------
-# 9. Tune DIABLO
-# -------------------------------------------------------------------
-
- test.keep <- list(
-   
-   Liver = c(5, 10),
-   Transcripto  = c(5,10),
-   Plasma = c(5,10)
- )
-
-set.seed(123)
-
-tune <- tune.block.splsda(
-  X = X,
-  Y = cluster_id,
-  ncomp = 2,
-  design = design,
-  folds = 10,
-  nrepeat = 10,
-  dist = "centroids.dist",
-  test.keepX = test.keep
-)
-
-print(tune)
-
-# -------------------------------------------------------------------
-# 10. Fit final DIABLO model
-# -------------------------------------------------------------------
-
-diablo <- block.splsda(
-  X = X,
-  Y = cluster_id,
-  ncomp = 2,
-  design = design,
-  keepX = tune$choice.keepX,
-  near.zero.var = TRUE 
-)
-
-perf_diablo <- perf(diablo, validation = "Mfold", folds = 10, nrepeat = 10)
-plot(perf_diablo)
-
-circosPlot(
-  diablo,
-  comp = 1:2,
-  cutoff = 0.5,
-  size.variables = 0.7)
-
-plotIndiv(
-  diablo, 
-  comp = 1:2, 
-  group = cluster_id, 
-  ind.names = FALSE,
-  legend = TRUE
-)
-```
-
-
-
-```{r}
-
 #sessionInfo()
 #sink("sessionInfo.txt")
 ```
