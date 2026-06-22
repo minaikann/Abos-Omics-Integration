@@ -47,20 +47,6 @@ library(tidyr)
 library(clusterProfiler)
 ```
 
-### Loading of data 
-
-```{r data loading, include=FALSE}
-clinical_data <- read.xlsx("~/Documents/Clustering_ABOS/codes/Data/dataEtude_clustering.xlsx", rowNames = TRUE)
-mash_data <- readRDS("~/Documents/Clustering_ABOS/codes/Data/histology_debora.RDS")
-expression_sheet <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 1)
-sample_info <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 2)
-sample_info <- sample_info[ !sample_info$BOX_NUMBER %in% c("1 M3", "3 M3", "2 V2") & !is.na(sample_info$BOX_NUMBER),]
-chemical_details <- read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Debora.xlsx", sheet = 3)
-liver_data <- read.xlsx("~/Documents/Clustering_ABOS/codes/Data/liver_matrix.xlsx", rowNames=TRUE)
-sample_info_liver <-read_xlsx("~/Documents/Clustering_ABOS/codes/Data/Chemical_details_liver.xlsx")
-df <-read.csv("/home/mina/Documents/Clustering_ABOS/codes/Data/table_transcripto.csv")
-```
-
 ### Functions used 
 
 ```{r}
