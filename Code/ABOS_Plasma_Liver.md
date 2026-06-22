@@ -1532,9 +1532,9 @@ length(mets_names)
 
 ```
 
-## =============================================================================
+
 ## DIABLO (LIVER METABOLITES SIGNATURES OF MASH AND FIBROSIS WITH PLASMA METABOLITES) 
-## =============================================================================
+
 
 This multilevel sPLS-DA model is used to find a small panel of liver + plasma metabolites that best classify Mash status, while adjusting for the fact that multiple measurements may come from the same individual.
 
@@ -1581,9 +1581,9 @@ n_samples <- length(common_ids)
 cat("n samples:", n_samples, "\n")
 cat("Liver vars:", ncol(liver_sub), " | Plasma vars:", ncol(plasma_sub), "\n")
 
-# -------------------------------------------------------------------
+
 # 7. Multilevel design: Mash as class, individual_id from rownames
-# -------------------------------------------------------------------
+
 # Combine liver + plasma into one matrix
 X_all <- cbind(liver_sub, plasma_sub)
 
@@ -1657,30 +1657,16 @@ plotLoadings(res_ml,
              ndisplay = 30,
              title = "Top 30 metabolites (Component 1)")
 ```
-```{r}
-## =====================================================================
+
 ## DIABLO (block.splsda) — MASH across liver + plasma
-## Reproducible version: fixes grid name, block-name case, parallel RNG,
-## and makes the final model deterministic.
-##
-## REPRODUCIBILITY NOTES
-##  - Tuning & perf run under SerialParam(RNGseed=...) so folds are
-##    identical every run (MulticoreParam does NOT honour set.seed()).
-##  - block.splsda() itself is deterministic given fixed keepX/design/data.
-##  - Best practice: tune ONCE, read off best_keepX, then hard-code it
-##    (see the TUNE_MODE switch) so downstream plots are byte-identical.
-## =====================================================================
-
-library(mixOmics)
-library(BiocParallel)
-
+```{r}
 ## Set to TRUE to run tuning; FALSE to skip tuning and use hard-coded keepX.
 TUNE_MODE <- TRUE
 SEED      <- 123
 
-## =====================================================================
+
 ## 1-7. DATA PREPARATION
-## =====================================================================
+
 common_samples <- intersect(colnames(liver_stages), colnames(plasma_stages))
 common_samples <- intersect(rownames(histo), common_samples)
 
@@ -1727,9 +1713,8 @@ if (anyNA(liver_sub))  liver_sub  <- fill_median(liver_sub)
 if (anyNA(plasma_sub)) plasma_sub <- fill_median(plasma_sub)
 stopifnot(!anyNA(liver_sub), !anyNA(plasma_sub))
 
-## =====================================================================
 ## 8. OUTCOME + ALIGNMENT
-## =====================================================================
+
 stopifnot(all(common_ids %in% rownames(histo)))
 
 Y <- as.factor(histo[common_ids, "Mash"])
@@ -1738,9 +1723,9 @@ names(Y) <- common_ids
 cat("Outcome levels:", levels(Y), "\n")
 print(table(Y))
 
-## =====================================================================
+
 ## 9. nearZeroVar filter + BLOCK LIST
-## =====================================================================
+
 nzv_liver  <- nearZeroVar(liver_sub)$Position
 nzv_plasma <- nearZeroVar(plasma_sub)$Position
 if (length(nzv_liver))  liver_sub  <- liver_sub[,  -nzv_liver,  drop = FALSE]
@@ -1758,9 +1743,9 @@ design <- matrix(0.5, nrow = 2, ncol = 2,
 diag(design) <- 0
 cat("\nDesign matrix:\n"); print(design)
 
-## =====================================================================
+
 ## 10. TUNE keepX   (FIX: single grid name; test.keepX names match blocks)
-## =====================================================================
+
 grid <- c(3, 5, 7, 10, 12, 15)
 
 ## names MUST match names(X_blocks) exactly ("Liver","Plasma")
@@ -1793,9 +1778,8 @@ if (TUNE_MODE) {
   cat("\nUsing hard-coded keepX:\n"); print(best_keepX)
 }
 
-## =====================================================================
 ## 11. FINAL DIABLO MODEL  (deterministic given keepX/design/data)
-## =====================================================================
+
 res_diablo <- block.splsda(
   X      = X_blocks,
   Y      = Y,
@@ -1818,9 +1802,9 @@ print(head(perf_diablo$features$stable$nrep1$Liver, 20))
 cat("\nPlasma feature stability (comp 1):\n")
 print(head(perf_diablo$features$stable$nrep1$Plasma, 20))
 
-## =====================================================================
+
 ## 12. SELECTED FEATURES  (block names match list: Liver / Plasma)
-## =====================================================================
+
 sel_liver_d  <- selectVar(res_diablo, block = "Liver",  comp = 1)$Liver$name
 sel_plasma_d <- selectVar(res_diablo, block = "Plasma", comp = 1)$Plasma$name
 
@@ -1833,9 +1817,9 @@ sel_plasma_d <- selectVar(res_diablo, block = "Plasma", comp = 2)$Plasma$name
 cat("\nDIABLO liver metabolites (comp 2):\n");  print(sel_liver_d)
 cat("\nDIABLO plasma metabolites (comp 2):\n"); print(sel_plasma_d)
 
-## =====================================================================
+
 ## 13. PLOTS  (incl. circos)
-## =====================================================================
+
 plotIndiv(res_diablo, legend = TRUE, ellipse = TRUE,
           title = "DIABLO: MASH across liver + plasma")
 
@@ -1883,28 +1867,7 @@ network(res_diablo,
         show.edge.labels = TRUE)
 
 dev.off()
-
-## =====================================================================
-## REPRODUCIBILITY CHECKLIST
-##  - Same results each run? Tuning is serial+seeded; fit is deterministic.
-##  - Plots look "different"? Check for COMPONENT SIGN FLIPS (mirror image) —
-##    compare selected feature SETS, not bar/point orientation.
-##  - For fully fixed plots: run once with TUNE_MODE=TRUE, copy best_keepX
-##    into the hard-coded block, then set TUNE_MODE=FALSE.
-##  - Liver block is a pre-defined MASH signature -> report DIABLO as an
-##    INTEGRATION/correlation result; use plasma-alone sPLS-DA for any
-##    predictive (classification) claim to avoid selection bias.
-## =====================================================================
 ```
-
-
-
-
-
-
-
-
-
 
 ```{r}
 n_cores <- max(1, parallel::detectCores() - 1)
