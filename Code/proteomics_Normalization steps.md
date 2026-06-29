@@ -10,6 +10,7 @@ library(dplyr)
 raw <- read.xlsx("~/Documents/Clustering_ABOS/codes/Data/proteiniomics_baseline.xlsx", rowNames = FALSE)
 
 ```
+<img width="261" height="240" alt="baseline_data_preprocessing" src="https://github.com/user-attachments/assets/fd429c62-d80d-4724-bd9f-6283b7d27537" />
 
 
 ```{r}
@@ -218,6 +219,8 @@ boxplot(mat[,1:5], las = 2, outline = FALSE,
         main = "Per-sample intensity distribution",
         ylab = "log2 intensity", cex.axis = 0.5)
 ```
+<img width="700" height="432" alt="image" src="https://github.com/user-attachments/assets/c650a0c4-d0c7-4c54-9161-0bd4a8e9b4f3" />
+
 ```{r}
 batch <- combined$Boite[match(colnames(mat), combined$ABOS_ID)]
 
