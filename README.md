@@ -1,4 +1,4 @@
-# Integrating Liver and Plasma Omics with Data‑Driven MASLD Clusters
+# Integrating Liver and Plasma Omics with Data‑Driven MASLD Clusters (1st part)
 
 ## Aim of the Project
 
@@ -81,3 +81,6 @@ available at [this GitLab repository](https://gitlab.com/bilille/2024-raverdy_et
 - MASLD subtypes show distinct but overlapping metabolic reprogramming in liver and plasma, centred on sphingolipid, phospholipid and bile‑acid pathways.  
 - Transcriptomic DEA highlights complementary changes in genes involved in lipid metabolism, inflammation and fibrosis‑related pathways, supporting the metabolomics findings.  
 - Multi‑omics integration suggests that liver sphingolipid and redox‑related signatures, together with their matching transcriptional programs and plasma markers, could form the basis of mechanistically grounded, subtype‑aware biomarker panels for MASH and fibrosis.
+
+
+# Cross-tissue Molecular Communication in MASLD (2nd Part)
